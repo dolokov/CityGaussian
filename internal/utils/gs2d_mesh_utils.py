@@ -341,6 +341,10 @@ def post_process_mesh(mesh, cluster_to_keep=1000):
     triangle_clusters = np.asarray(triangle_clusters)
     cluster_n_triangles = np.asarray(cluster_n_triangles)
     cluster_area = np.asarray(cluster_area)
+    if len(cluster_n_triangles) == 0:
+        print("no mesh clusters found; skipping post-processing")
+        return mesh_0
+    cluster_to_keep = max(1, min(int(cluster_to_keep), len(cluster_n_triangles)))
     n_cluster = np.sort(cluster_n_triangles.copy())[-cluster_to_keep]
     n_cluster = max(n_cluster, 50)  # filter meshes smaller than 50
     triangles_to_remove = cluster_n_triangles[triangle_clusters] < n_cluster

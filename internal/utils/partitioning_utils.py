@@ -311,14 +311,19 @@ class PartitionableScene:
         plt.close()
         fig, ax = plt.subplots()
         func(ax, *args, **kwargs)
-        plt.show(fig)
+        save_path = kwargs.pop("save_path", None)
+        if save_path is not None:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            fig.savefig(save_path, dpi=600)
+        plt.close(fig)
 
     def save_plot(self, func: Callable, path: str, *args, **kwargs):
         plt.close()
         fig, ax = plt.subplots()
         func(ax, *args, **kwargs)
-        plt.savefig(path, dpi=600)
-        plt.show(fig)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fig.savefig(path, dpi=600)
+        plt.close(fig)
 
 
 class Partitioning:

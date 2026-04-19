@@ -13,7 +13,21 @@ parser = argparse.ArgumentParser()
 parser.add_argument("path", help="Path to the model output directory")
 args = parser.parse_args()
 
-checkpoint_dir = os.path.join(args.path, "blocks")
+output_dir = os.path.abspath(args.path)
+checkpoint_dir = os.path.join(output_dir, "blocks")
+
+if not os.path.isdir(output_dir):
+    raise FileNotFoundError(
+        f"Output directory does not exist: '{output_dir}'. "
+        "If you are using citygaussian_custom_scene_pipeline.py, pass outputs/<scene>_finetune."
+    )
+
+if not os.path.isdir(checkpoint_dir):
+    raise FileNotFoundError(
+        f"Checkpoint blocks directory does not exist: '{checkpoint_dir}'. "
+        "Expected per-block outputs under '<output_dir>/blocks'."
+    )
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
@@ -22,7 +36,7 @@ stdout_handler = logging.StreamHandler(sys.stdout)
 stdout_handler.setLevel(logging.DEBUG)
 stdout_handler.setFormatter(formatter)
 
-file_handler = logging.FileHandler(os.path.join(os.path.dirname(checkpoint_dir), "merge.log"))
+file_handler = logging.FileHandler(os.path.join(output_dir, "merge.log"))
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
@@ -155,9 +169,9 @@ def rename_ddp_appearance_states():
 # TODO: align ckpt["hyper_parameters"]["renderer"] if appearance model is used
 
 logger.info("number_of_gaussians=sum({})={}".format(number_of_gaussians, sum(number_of_gaussians)))
-if not os.path.exists(os.path.join(os.path.dirname(checkpoint_dir), "checkpoints")):
-    os.makedirs(os.path.join(os.path.dirname(checkpoint_dir), "checkpoints"))
-output_path = os.path.join(os.path.dirname(checkpoint_dir), "checkpoints", ckpt["hyper_parameters"]["initialize_from"].split('/')[-1])
+if not os.path.exists(os.path.join(output_dir, "checkpoints")):
+    os.makedirs(os.path.join(output_dir, "checkpoints"))
+output_path = os.path.join(output_dir, "checkpoints", ckpt["hyper_parameters"]["initialize_from"].split('/')[-1])
 logger.info("Saving...")
 torch.save(ckpt, output_path)
 logger.info(f"Saved to '{output_path}'")

@@ -287,7 +287,7 @@ class CityGSPartitionableScene(PartitionableScene):
         plt.close()
         fig, ax = plt.subplots()
         func(ax, *args, **kwargs)
-        plt.show(fig)
+        plt.close(fig)
 
     def save_plot(self, func: Callable, path: str, notebook=True, *args, **kwargs):
         plt.close()
@@ -295,9 +295,9 @@ class CityGSPartitionableScene(PartitionableScene):
         func(ax, *args, **kwargs)
         plt.savefig(path, dpi=600)
         if notebook:
-            plt.show(fig)
+            plt.close(fig)
         else:
-            plt.show()
+            plt.close(fig)
 
 
 class CityGSPartitioning(Partitioning):

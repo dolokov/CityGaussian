@@ -57,7 +57,7 @@ class Colmap(DataParserConfig):
 
     image_list: Optional[str] = None
 
-    down_sample_factor: int = 1
+    down_sample_factor: float = 1
 
     down_sample_rounding_mode: Literal["floor", "round", "round_half_up", "ceil"] = "round"
 
@@ -93,12 +93,38 @@ class ColmapDataParser(DataParser):
             return os.path.join(self.path, "sparse", "0")
         return os.path.join(self.path, "sparse")
 
+    def _get_downsample_suffix_candidates(self) -> list:
+        factor = float(self.params.down_sample_factor)
+        if factor <= 1:
+            return []
+
+        candidates = []
+        rounded = round(factor)
+        if abs(factor - rounded) < 1e-8:
+            candidates.append(str(int(rounded)))
+        candidates.append(str(self.params.down_sample_factor))
+        candidates.append(str(factor))
+
+        deduped = []
+        seen = set()
+        for candidate in candidates:
+            if candidate not in seen:
+                deduped.append(candidate)
+                seen.add(candidate)
+        return deduped
+
     def get_image_dir(self) -> str:
         if self.params.image_dir is None:
-            image_dir = os.path.join(self.path, "images")
-            if self.params.down_sample_factor > 1:
-                image_dir = image_dir + "_{}".format(self.params.down_sample_factor)
-            return image_dir
+            base_dir = os.path.join(self.path, "images")
+            if float(self.params.down_sample_factor) <= 1:
+                return base_dir
+
+            candidate_dirs = [f"{base_dir}_{suffix}" for suffix in self._get_downsample_suffix_candidates()]
+            for candidate in candidate_dirs:
+                if os.path.isdir(candidate):
+                    return candidate
+
+            return candidate_dirs[0]
         return os.path.join(self.path, self.params.image_dir)
 
     @staticmethod
@@ -545,11 +571,16 @@ class ColmapDataParser(DataParser):
         return train_set_indices, eval_set_indices
 
     def build_step_split_indices(self, image_name_list) -> Tuple[list, list]:
-        assert self.params.eval_step > 1, "eval_step must > 1"
-        eval_step = self.params.eval_step
         if self.params.eval_image_select_mode == "ratio":
             eval_image_num = max(math.ceil(self.params.eval_ratio * len(image_name_list)), 1)
-            eval_step = len(image_name_list) // eval_image_num
+            eval_step = max(len(image_name_list) // eval_image_num, 2)
+        elif self.params.eval_step == -1:
+            training_set_indices = list(range(len(image_name_list)))
+            validation_set_indices = training_set_indices[:1]
+            return training_set_indices, validation_set_indices
+        else:
+            assert self.params.eval_step > 1, "eval_step must > 1"
+            eval_step = self.params.eval_step
 
         if self.params.split_mode == "experiment":
             # split train set and val set
