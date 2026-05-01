@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+udisksctl mount -b /dev/sda1
+"""
 import argparse
 import glob
 import os
@@ -178,7 +181,7 @@ def main():
 
     repo_root = Path.cwd()
     images_src = Path(args.images)
-    require_dir(images_src)
+    #require_dir(images_src)
 
     require_file(repo_root / "main.py")
     require_dir(repo_root / "configs")
@@ -204,7 +207,18 @@ def main():
     scene_images_dir = scene_dir / "images"
     if scene_images_dir.exists():
         shutil.rmtree(scene_images_dir)
-    shutil.copytree(images_src, scene_images_dir)
+    if str(images_src).lower().endswith('.mp4'):
+        os.makedirs(scene_images_dir, exist_ok=True)
+        # sample frames to images
+        import cv2 as cv 
+        cap = cv.VideoCapture(images_src)
+        sample_every_x_frames = 12
+        for frame_idx in range(int(cap.get(cv.CAP_PROP_FRAME_COUNT))):
+            _, frame = cap.read()
+            if frame is not None and frame_idx % sample_every_x_frames == 0:
+                cv.imwrite(os.path.join(scene_images_dir, f"frame_{str(frame_idx).zfill(6)}.jpg"),frame)
+    else:
+        shutil.copytree(images_src, scene_images_dir)
 
     image_count = count_top_level_files(scene_images_dir)
     if image_count <= 0:
